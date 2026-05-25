@@ -1,200 +1,71 @@
-# =========================================================
-# TITANIC SURVIVAL PREDICTION SYSTEM
-# Streamlit + TensorFlow Deployment
-# =========================================================
-
 import streamlit as st
-import tensorflow as tf
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
+import math
+import json
 
-# =========================================================
-# PAGE CONFIG
-# =========================================================
+# -----------------------------
+# LOAD SAVED WEIGHTS
+# -----------------------------
 
-st.set_page_config(
-    page_title="Titanic Survival Prediction",
-    page_icon="🚢",
-    layout="wide"
-)
+with open("ann_weights.json", "r") as f:
+    weights = json.load(f)
 
-# =========================================================
-# LOAD MODEL
-# =========================================================
+# Extract weights
+w1 = weights["w1"]
+w2 = weights["w2"]
+w3 = weights["w3"]
 
-model = tf.keras.models.load_model("titanic_ann_model.h5")
+w4 = weights["w4"]
+w5 = weights["w5"]
+w6 = weights["w6"]
 
-# =========================================================
-# HEADER SECTION
-# =========================================================
+w7 = weights["w7"]
+w8 = weights["w8"]
 
-st.markdown("""
-# 🚢 Titanic Survival Prediction System
+bh1 = weights["bh1"]
+bh2 = weights["bh2"]
 
-### Deep Learning Based Passenger Survival Prediction
-""")
+bo = weights["bo"]
 
-st.image(
-    "https://images.unsplash.com/photo-1529429617124-aee711a5ac1c",
-    use_container_width=True
-)
+# -----------------------------
+# STREAMLIT UI
+# -----------------------------
 
-# =========================================================
-# PROJECT DESCRIPTION
-# =========================================================
+st.title("Titanic ANN Prediction")
 
-with st.container():
+x1 = st.slider("Pclass", 0.0, 1.0, 0.2)
+x2 = st.slider("Age", 0.0, 1.0, 0.24)
+x3 = st.slider("Fare", 0.0, 1.0, 0.80)
 
-    st.markdown("""
-    ## 📌 Project Description
-    
-    This AI-powered application predicts whether a passenger
-    would survive during the Titanic disaster using:
-    
-    - Artificial Neural Networks (ANN)
-    - TensorFlow Deep Learning Model
-    - Passenger Information
-    
-    The system uses:
-    
-    - Passenger Class
-    - Age
-    - Fare
-    
-    to estimate survival probability.
-    """)
+# -----------------------------
+# SIGMOID
+# -----------------------------
 
-# =========================================================
-# INPUT AREA
-# =========================================================
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
 
-st.markdown("## 🧾 Passenger Details")
+# -----------------------------
+# FORWARD PROPAGATION
+# -----------------------------
 
-col1, col2, col3 = st.columns(3)
+zh1 = (x1 * w1) + (x2 * w2) + (x3 * w3) + bh1
+zh2 = (x1 * w4) + (x2 * w5) + (x3 * w6) + bh2
 
-with col1:
-    pclass = st.selectbox(
-        "Passenger Class",
-        [1, 2, 3]
-    )
+h1 = sigmoid(zh1)
+h2 = sigmoid(zh2)
 
-with col2:
-    age = st.slider(
-        "Age",
-        1,
-        80,
-        24
-    )
+zo = (h1 * w7) + (h2 * w8) + bo
 
-with col3:
-    fare = st.number_input(
-        "Fare",
-        min_value=0.0,
-        max_value=600.0,
-        value=120.0
-    )
+y_pred = sigmoid(zo)
 
-# =========================================================
-# NORMALIZATION
-# =========================================================
+# -----------------------------
+# OUTPUT
+# -----------------------------
 
-# Dummy dataset for scaling consistency
-dummy_data = np.array([
-    [1, 1, 0],
-    [3, 80, 600]
-])
+st.subheader("Prediction")
 
-scaler = MinMaxScaler()
+st.write("Predicted Output:", round(y_pred, 4))
 
-scaler.fit(dummy_data)
-
-input_data = np.array([[pclass, age, fare]])
-
-input_scaled = scaler.transform(input_data)
-
-# =========================================================
-# PREDICTION BUTTON
-# =========================================================
-
-if st.button("Predict Survival"):
-
-    prediction = model.predict(input_scaled)
-
-    probability = float(prediction[0][0])
-
-    # =====================================================
-    # PREDICTION LOGIC
-    # =====================================================
-
-    if probability > 0.5:
-        result = "✅ Survived"
-    else:
-        result = "❌ Not Survived"
-
-    confidence = probability * 100
-
-    # =====================================================
-    # OUTPUT AREA
-    # =====================================================
-
-    st.markdown("## 🎯 Prediction Result")
-
-    col4, col5, col6 = st.columns(3)
-
-    with col4:
-        st.metric(
-            label="Prediction",
-            value=result
-        )
-
-    with col5:
-        st.metric(
-            label="Survival Probability",
-            value=f"{probability:.2f}"
-        )
-
-    with col6:
-        st.metric(
-            label="Confidence Score",
-            value=f"{confidence:.2f}%"
-        )
-
-    # =====================================================
-    # VISUALIZATION
-    # =====================================================
-
-    st.markdown("## 📊 Probability Visualization")
-
-    survive_prob = probability
-    nonsurvive_prob = 1 - probability
-
-    chart_data = pd.DataFrame({
-        "Category": ["Survived", "Not Survived"],
-        "Probability": [survive_prob, nonsurvive_prob]
-    })
-
-    fig, ax = plt.subplots()
-
-    ax.bar(
-        chart_data["Category"],
-        chart_data["Probability"]
-    )
-
-    ax.set_ylabel("Probability")
-
-    st.pyplot(fig)
-
-# =========================================================
-# FOOTER
-# =========================================================
-
-st.markdown("""
----
-### Developed using:
-- Streamlit
-- TensorFlow
-- Python
-- Deep Learning
-""")
+if y_pred > 0.5:
+    st.success("Passenger Survived")
+else:
+    st.error("Passenger Did Not Survive")
